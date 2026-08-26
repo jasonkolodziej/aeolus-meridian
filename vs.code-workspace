@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "AEOLUS"
+    },
+    {
+        "path": "../AEOLUS.wiki",
+        "name": "AEOLUS Wiki"
+    }
+  ]
+}
