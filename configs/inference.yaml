@@ -1,0 +1,46 @@
+# Operational cycle configuration (Scope v2.1 §6.2).
+
+cycle:
+  synoptic_hours: [0, 6, 12, 18]
+  # Cycle t consumes the t-6 NWP cycle. Never the cycle named t: it publishes
+  # ~3.5-4h after its own valid time.
+  nwp_lag_hours: 6
+  max_nwp_lag_hours: 12
+  nominal_vitals_offset_minutes: 45
+  # Derived, not asserted: advisory_offset - reduced_worst_case - margin.
+  vitals_timeout_minutes: 80
+  advisory_offset_minutes: 180
+  advisory_margin_minutes: 30
+  allow_estimated_vitals: true
+  allow_load_shedding: true
+
+# Minutes from cycle start. target = healthy path, max = worst case.
+budgets:
+  standard:
+    assembly:      {target: 10, max: 20}
+    preprocess:    {target: 15, max: 25}
+    deterministic: {target: 10, max: 18}
+    fusion:        {target: 2,  max: 4}
+    diffusion:     {target: 13, max: 25}
+    postprocess:   {target: 5,  max: 10}
+  # Load-shedding profile: ~10 ensemble members instead of 20-50.
+  reduced:
+    assembly:      {target: 8,  max: 14}
+    preprocess:    {target: 12, max: 18}
+    deterministic: {target: 10, max: 16}
+    fusion:        {target: 2,  max: 4}
+    diffusion:     {target: 6,  max: 10}
+    postprocess:   {target: 4,  max: 8}
+
+ensemble:
+  members: 20
+  min_members_for_ensemble_cone: 10
+  # Below this fraction of the climatological radius at the longest lead, the
+  # cone is drawn from climatology instead.
+  underdispersion_fraction: 0.5
+
+products:
+  lead_hours: [12, 24, 36, 48, 72, 96, 120]
+  ri_threshold_kt: 30
+  ri_window_hours: 24
+  ri_alert_probability: 0.3

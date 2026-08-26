@@ -1,0 +1,32 @@
+# Two-stage training curriculum (Scope v2.1 §4.6.1).
+#
+# The hard rule: the final stage is always the operational flavor. A run that
+# stops after Stage A cannot be registered or promoted.
+
+stage_a:
+  name: A
+  flavor: era5_pretrain
+  input_sources: [era5, besttrack_working]
+  label_source: besttrack_final
+  season_range: [1980, 2019]
+  epochs: 60
+  learning_rate: 1.0e-3
+
+stage_b:
+  name: B
+  flavor: gdas_finetune
+  input_sources: [gdas_gfs, besttrack_working, goes, sst_ohc]
+  label_source: besttrack_final
+  season_range: [2015, 2019]
+  epochs: 20
+  learning_rate: 1.0e-4
+  frozen_modules: [encoder]
+
+# Measured working-vs-final best-track error used to build Stage B inputs.
+# These are the documented starting values; replace with numbers from
+# recalibrate_from_pairs() once paired archive data exists.
+working_track_noise:
+  position_rms_nm: 15.0
+  intensity_rms_kt: 5.0
+  pressure_rms_mb: 3.0
+  quantise: true

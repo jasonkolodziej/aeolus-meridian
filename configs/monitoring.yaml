@@ -1,0 +1,45 @@
+# Skew, drift and promotion gates (Scope v2.1 §4.6.3, §5.3, §5.5).
+
+skew_audit:
+  # ERA5T lands ~5 days after the cycle; re-run and compare against operational.
+  audit_delay_days: 5
+  window_days: 14
+  min_samples: 8
+  lead_hours: 48
+  alert_track_delta_nm: 15.0
+  alert_intensity_delta_kt: 4.0
+
+drift:
+  # Reference is the Stage B distribution, never Stage A. Comparing live GDAS
+  # features to ERA5 statistics shows a constant offset that is not drift.
+  reference_flavor: gdas_finetune
+  shift_sigma: 2.0
+  variance_ratio_limit: 3.0
+  min_samples: 30
+  validation_loss:
+    threshold_fraction: 0.15
+    consecutive_required: 3
+
+promotion:
+  # Decided on validation. The test set is not a promotion criterion.
+  split: val
+  flavor: gdas_finetune
+  primary_metric: track_error_48h_nm
+  require_manual_gate: true
+  thresholds:
+    track_error_48h_nm:         {limit: 90.0,  lower_is_better: true}
+    track_error_72h_nm:         {limit: 150.0, lower_is_better: true}
+    track_error_120h_nm:        {limit: 250.0, lower_is_better: true}
+    intensity_error_48h_kt:     {limit: 15.0,  lower_is_better: true}
+    intensity_error_72h_kt:     {limit: 20.0,  lower_is_better: true}
+    nhc_consensus_beat_rate_48h: {limit: 0.50, lower_is_better: false}
+
+test_set_budget:
+  max_evaluations_per_season: 4
+
+triggers:
+  scheduled_monthly_day: 1
+  preseason_date: "05-01"
+  data_volume_threshold: 500
+  nightly_latent_hour_utc: 2
+  suppress_nightly_latent_during_active_storms: true
