@@ -2,10 +2,10 @@
   "folders": [
     {
       "path": ".",
-      "name": "AEOLUS"
+      "name": "aeolus-meridian"
     },
     {
-        "path": "../AEOLUS.wiki",
+        "path": "../aeolus-meridian.wiki",
         "name": "AEOLUS Wiki"
     }
   ]
