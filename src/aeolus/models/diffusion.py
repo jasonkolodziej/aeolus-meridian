@@ -31,6 +31,16 @@ def build_diffusion(
     less gracelessly at low step counts than the linear schedule -- and step
     count is a hard constraint here, since the whole ensemble must be generated
     inside the 13-minute §6.2.2 budget.
+
+    If that budget binds in practice, the better answer is not the scheduler's
+    load-shedding path -- which drops ensemble members, trading tail resolution
+    for punctuality with no middle setting. Consistency models (Song et al. 2023,
+    arXiv:2303.01469) support one-step generation by design while still allowing
+    multistep sampling to trade compute for quality, giving a graded response to
+    time pressure instead of a binary drop. They can be **distilled from an
+    already-trained diffusion model**, so this is not an architectural commitment
+    to make up front: train here, distil for the operational path if needed.
+    SWIFT (Stock et al. 2025, arXiv:2509.25631) is prior art for weather.
     """
     torch = require_torch()
     nn = torch.nn

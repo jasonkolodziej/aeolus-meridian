@@ -135,9 +135,31 @@ class Track:
 # Empirical working-vs-final error, Scope v2.1 §4.6.2. These are the documented
 # starting values; recalibrate_from_pairs() replaces them with numbers measured
 # from our own archive as soon as paired working/final data exists.
+#
+# Recalibration is a prerequisite, not a refinement. Emanuel and Zhang (2016,
+# doi:10.1175/JAS-D-16-0100.1) find that tropical cyclone intensity error growth
+# over the first few days is dominated by error in the *initial intensity* --
+# precisely the quantity these constants perturb, at precisely the lead times the
+# promotion gates score. An emulator whose magnitude is wrong by a factor of two
+# is misrepresenting the dominant error source.
+#
+# And these values are probably low. Torn and Snyder (2012,
+# doi:10.1175/WAF-D-11-00085.1) put satellite-only intensity uncertainty near
+# 10 kt for tropical storms and 12 kt for category 1-2, with pressure uncertainty
+# from 7 to 12 mb by intensity -- roughly double the scope's figures, and more
+# for pressure. See WorkingTrackNoise.from_literature().
 DEFAULT_POSITION_RMS_NM = 15.0
 DEFAULT_INTENSITY_RMS_KT = 5.0
 DEFAULT_PRESSURE_RMS_MB = 3.0
+
+# Torn and Snyder (2012), satellite-only regime. Their estimates are
+# intensity-dependent -- position uncertainty falls with intensity while
+# intensity uncertainty rises -- which the scalar-RMS emulator below cannot
+# express. Representing that dependence is a known structural gap; these are the
+# category 1-2 values as a single conservative substitute.
+LITERATURE_POSITION_RMS_NM = 15.0
+LITERATURE_INTENSITY_RMS_KT = 12.0
+LITERATURE_PRESSURE_RMS_MB = 10.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,6 +176,25 @@ class WorkingTrackNoise:
         for name in ("position_rms_nm", "intensity_rms_kt", "pressure_rms_mb"):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")
+
+    @classmethod
+    def from_literature(cls) -> WorkingTrackNoise:
+        """Published error estimates rather than the scope's starting values.
+
+        Torn and Snyder (2012) for the satellite-only regime. Use this to check
+        how sensitive Stage B is to the noise assumption before real paired data
+        exists -- if fine-tuned performance moves materially between this and the
+        defaults, the emulator is load-bearing and recalibration cannot wait.
+
+        Not the default, because the scope's numbers are what §4.6.2 specifies
+        and silently changing them would change Stage B behaviour without a
+        recorded decision.
+        """
+        return cls(
+            position_rms_nm=LITERATURE_POSITION_RMS_NM,
+            intensity_rms_kt=LITERATURE_INTENSITY_RMS_KT,
+            pressure_rms_mb=LITERATURE_PRESSURE_RMS_MB,
+        )
 
 
 def emulate_working_fix(

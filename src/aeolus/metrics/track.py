@@ -145,10 +145,18 @@ def diebold_mariano(
 ) -> tuple[float, float]:
     """Diebold-Mariano test statistic and two-sided p-value (§5.3 Stage 5).
 
-    Uses a lag-0 variance estimate, which is adequate for the storm-wise
-    independent samples this is applied to; serially-correlated 6-hourly fixes
-    from a single storm should be aggregated to one case per storm first, or the
-    test will be anti-conservative.
+    Diebold and Mariano (1995, doi:10.1080/07350015.1995.10524599).
+
+    Uses a lag-0 variance estimate, which is valid only for **independent**
+    cases. Serially-correlated 6-hourly fixes from a single storm must be
+    aggregated to one case per storm first -- see :func:`aggregate_by_storm`.
+
+    Feeding correlated fixes in directly is worse than merely anti-conservative.
+    Coroneo and Iacone (2024, arXiv:2409.12662) show that the test's power falls
+    as dependence in the loss differential rises, and that past a threshold it
+    has no power at all and spuriously rejects a correct null -- so it can report
+    a significant difference in the wrong direction. The n >= 8 floor below
+    guards sample size, not independence; nothing here can detect the latter.
 
     Returns ``(statistic, p_value)``. A negative statistic favours the candidate.
     """
@@ -168,6 +176,37 @@ def diebold_mariano(
     stat = float(mean_d / np.sqrt(var_d / n))
     p = float(2.0 * (1.0 - _normal_cdf(abs(stat))))
     return stat, p
+
+
+def aggregate_by_storm(
+    storm_ids: list[str] | np.ndarray,
+    candidate_errors: np.ndarray,
+    baseline_errors: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Collapse per-fix errors to one case per storm, for :func:`diebold_mariano`.
+
+    Six-hourly fixes from one storm are not independent samples: they share an
+    initial condition, a synoptic regime and a track. Averaging within a storm
+    gives one case per storm, which is the unit the lag-0 variance estimate
+    assumes.
+
+    Storms are returned in sorted id order so the two arrays stay aligned.
+
+    Returns:
+        ``(candidate_by_storm, baseline_by_storm)``, both shape ``(n_storms,)``.
+    """
+    ids = np.asarray(storm_ids)
+    cand = np.asarray(candidate_errors, dtype=float)
+    base = np.asarray(baseline_errors, dtype=float)
+    if not (ids.shape == cand.shape == base.shape):
+        raise ValueError("storm_ids, candidate and baseline must have the same shape")
+    if ids.size == 0:
+        raise ValueError("cannot aggregate an empty sample")
+
+    unique = np.unique(ids)
+    cand_out = np.array([cand[ids == sid].mean() for sid in unique])
+    base_out = np.array([base[ids == sid].mean() for sid in unique])
+    return cand_out, base_out
 
 
 def _normal_cdf(x: float) -> float:

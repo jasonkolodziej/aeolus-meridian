@@ -14,6 +14,7 @@ from aeolus.metrics.probabilistic import (
 from aeolus.metrics.track import (
     ForecastPoint,
     VerificationPair,
+    aggregate_by_storm,
     beat_rate,
     diebold_mariano,
     to_metric_dict,
@@ -106,6 +107,50 @@ def test_diebold_mariano_finds_no_difference_between_equals():
 def test_diebold_mariano_needs_a_minimum_sample():
     with pytest.raises(ValueError, match="at least 8"):
         diebold_mariano(np.ones(4), np.ones(4))
+
+
+def test_aggregation_collapses_fixes_to_one_case_per_storm():
+    ids = ["AL01", "AL01", "AL01", "AL02", "AL02"]
+    cand, base = aggregate_by_storm(ids, np.array([10.0, 20.0, 30.0, 5.0, 15.0]),
+                                    np.array([12.0, 24.0, 36.0, 4.0, 16.0]))
+    assert cand.tolist() == [20.0, 10.0]
+    assert base.tolist() == [24.0, 10.0]
+
+
+def test_aggregation_keeps_the_two_arrays_aligned():
+    """Storms are ordered by id, so candidate and baseline stay paired."""
+    ids = np.array(["AL09", "AL02", "AL09", "AL02"])
+    cand, base = aggregate_by_storm(ids, np.array([1.0, 100.0, 3.0, 300.0]),
+                                    np.array([2.0, 200.0, 4.0, 400.0]))
+    assert cand.tolist() == [200.0, 2.0]
+    assert base.tolist() == [300.0, 3.0]
+
+
+def test_aggregation_rejects_mismatched_shapes():
+    with pytest.raises(ValueError, match="same shape"):
+        aggregate_by_storm(["AL01"], np.array([1.0, 2.0]), np.array([1.0, 2.0]))
+
+
+def test_aggregation_rejects_an_empty_sample():
+    with pytest.raises(ValueError, match="empty"):
+        aggregate_by_storm([], np.array([]), np.array([]))
+
+
+def test_correlated_fixes_inflate_significance_until_aggregated():
+    """Why aggregate_by_storm exists: repeated fixes are not extra evidence."""
+    rng = np.random.default_rng(11)
+    n_storms, per_storm = 10, 20
+    offsets = rng.normal(0.0, 12.0, n_storms)
+    ids, cand, base = [], [], []
+    for i, off in enumerate(offsets):
+        ids += [f"AL{i:02d}"] * per_storm
+        base += list(np.abs(rng.normal(80.0, 3.0, per_storm)))
+        cand += list(np.abs(rng.normal(80.0 + off, 3.0, per_storm)))
+    ids, cand, base = np.array(ids), np.array(cand), np.array(base)
+
+    _, p_raw = diebold_mariano(cand, base)
+    _, p_agg = diebold_mariano(*aggregate_by_storm(ids, cand, base))
+    assert p_agg > p_raw
 
 
 # --- probabilistic ---------------------------------------------------------

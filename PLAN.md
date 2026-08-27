@@ -116,6 +116,9 @@ offset between those analysis systems.
 
 ## 5. Open items
 
+Citations for everything below are in `docs/references.md`.
+
+
 **Sample size.** Roughly 10-15k synoptic fixes exist across the full archive.
 For a 6-layer transformer and a diffusion model that is thin. Stage A on ERA5
 helps, but the honest mitigation is aggressive augmentation, storm-relative
@@ -134,6 +137,34 @@ may already trail current NHC performance. The beat-rate gates carry the real
 claim because they measure against a live baseline; the absolute thresholds
 should be re-baselined against the current verification report before anyone
 treats them as a bar.
+
+**Noise-emulator recalibration is a prerequisite, not a refinement.** Emanuel and
+Zhang (2016) find intensity error growth over the first few days is dominated by
+initial-intensity error — exactly what `emulate_working_fix()` perturbs, at
+exactly the leads the promotion gates score. The scope's 5 kt / 3 mb defaults are
+roughly half the published estimates (Torn and Snyder 2012), and the real error
+is intensity-dependent, which the scalar-RMS emulator cannot express.
+`WorkingTrackNoise.from_literature()` exists to measure the sensitivity before
+real paired data arrives.
+
+**Two structural gaps in the feature set, both intensity-side.** No inner-core
+moisture (Emanuel and Zhang 2017 find it matters as much as the wind field;
+`rh700_pct` is an environmental area mean). No ocean feedback — SST and OHC are
+static daily values persisted from the previous day, so a storm's own cold wake,
+a first-order limit on its own intensification, is nowhere in the system.
+
+**Track and intensity thresholds should not share a table.** Intensity skill has
+improved far more slowly than track skill, so a beat rate on intensity is a claim
+about a near-static baseline close to an intrinsic predictability limit. The
+absolute limits in `DEFAULT_THRESHOLDS` also need re-deriving outright: NHC's
+official 48 h Atlantic track error was 45.4 n mi in 2024 and 53.4 n mi in 2025,
+against a 90 nm production threshold.
+
+**Consistency distillation beats load shedding if the diffusion budget binds.**
+Song et al. (2023): one-step generation by design, multistep still available,
+distillable from an already-trained diffusion model — a graded response to time
+pressure rather than dropping members. Evaluate before relying on the shedding
+path in production.
 
 **Load shedding is planned but not implemented downstream.** The scheduler
 selects the reduced profile and flags it, but `run_cycle` does not yet reduce

@@ -157,6 +157,19 @@ def test_recalibration_recovers_the_injected_error_scale():
     assert measured.intensity_rms_kt == pytest.approx(8.0, rel=0.25)
 
 
+def test_literature_noise_is_wider_than_the_scope_defaults():
+    """Published estimates put intensity and pressure error above §4.6.2's."""
+    scope, lit = WorkingTrackNoise(), WorkingTrackNoise.from_literature()
+    assert lit.intensity_rms_kt > scope.intensity_rms_kt
+    assert lit.pressure_rms_mb > scope.pressure_rms_mb
+
+
+def test_defaults_are_unchanged_by_the_literature_alternative():
+    """from_literature() is opt-in; it must not move Stage B silently."""
+    assert WorkingTrackNoise().intensity_rms_kt == 5.0
+    assert WorkingTrackNoise().pressure_rms_mb == 3.0
+
+
 def test_recalibration_rejects_mismatched_pairs():
     with pytest.raises(ValueError, match="valid_time"):
         recalibrate_from_pairs([(make_fix(0, TrackQuality.WORKING), make_fix(6))])

@@ -19,6 +19,23 @@ import numpy as np
 
 from .sources import Flavor
 
+# Two structural gaps in this feature set, both affecting intensity rather than
+# track, and both worth naming here rather than discovering during a backtest.
+#
+# 1. No inner-core moisture. Emanuel and Zhang (2017,
+#    doi:10.1175/JAS-D-17-0008.1) find intensity error growth is at least as
+#    sensitive to inner-core moisture specification as to the wind field.
+#    ``rh700_pct`` below is an area mean over the storm-relative box -- an
+#    environmental quantity, not an inner-core one.
+#
+# 2. No ocean feedback. ``sst_c`` and ``ohc_kj_cm2`` are static area means from a
+#    daily product persisted from the previous day (see data.availability). A
+#    storm's own cold wake -- the upwelling and mixing it induces, which then
+#    limits its own intensification -- is nowhere in this system. For intensity
+#    that is a first-order feedback, not a refinement. A minimum viable version
+#    makes SST/OHC vary along the forecast track with a wake parameterisation
+#    rather than freezing them at t-1 day.
+
 #: Names produced by :func:`compute_environment_features`, in output order.
 FEATURE_NAMES: tuple[str, ...] = (
     "shear_magnitude_kt",
@@ -169,10 +186,15 @@ def relative_vorticity_850(fields: GriddedFields, dx_km: float = 27.75) -> float
 def potential_intensity(sst_c: float, ohc: float, shear_kt: float) -> float:
     """Empirical potential-intensity proxy in knots.
 
-    This is an SST/OHC/shear regression standing in for the full Emanuel (1995)
-    algorithm named in §4.3, which needs a full thermodynamic sounding. The
-    interface is the one the real implementation will keep; swapping it out
-    changes this function only.
+    An SST/OHC/shear regression standing in for the real algorithm named in §4.3,
+    which needs a full thermodynamic sounding. The interface is the one the real
+    implementation will keep; swapping it out changes this function only.
+
+    The algorithm to swap in is Emanuel (1995,
+    doi:10.1175/1520-0469(1995)052<3969:SOTCTS>2.0.CO;2) as extended by Bister and
+    Emanuel (1998, doi:10.1007/BF01030791) -- the open-cycle formulation with
+    dissipative heating, which is what the operational ``pcmin`` code implements.
+    Citing the 1995 paper alone understates what is actually used.
     """
     base = 15.0 * max(sst_c - 26.0, 0.0)
     ohc_bonus = 0.25 * max(ohc, 0.0)

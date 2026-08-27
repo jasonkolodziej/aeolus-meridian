@@ -64,11 +64,27 @@ class Threshold:
         return f"{self.metric}={value:.3f} {op} {self.limit:.3f} [{verdict}]"
 
 
-#: Appendix B production thresholds. Absolute track/intensity numbers are
-#: provisional pending re-baselining against the current NHC verification
-#: report (Scope v2.1 Appendix B note) -- the beat-rate gates are the ones that
-#: carry the real claim, because they are measured against the live baseline
-#: rather than against a number written down in 2026.
+#: Appendix B production thresholds.
+#:
+#: The absolute track/intensity numbers do not survive contact with the NHC
+#: verification record and must be re-derived before anyone treats them as a
+#: bar. Official 48 h Atlantic track error was 45.4 n mi in 2024 (a record at
+#: every lead time) and 53.4 n mi in 2025; NOAA's own GPRA target for 2026 is
+#: 51.0 n mi. Against a 45-55 nm baseline, the 90 nm production threshold below
+#: would admit a system roughly twice as bad as the incumbent.
+#: See https://www.nhc.noaa.gov/verification/
+#:
+#: The beat-rate gate is therefore not a supplement to the absolute limits -- it
+#: is the only thing standing between this table and that outcome, because it is
+#: measured against the live baseline rather than a number written down in 2026.
+#:
+#: Track and intensity should not share this table's structure either. Intensity
+#: skill has improved far more slowly than track skill (Emanuel and Zhang 2016,
+#: doi:10.1175/JAS-D-16-0100.1; DeMaria et al. 2014,
+#: doi:10.1175/BAMS-D-12-00240.1), so a beat rate on intensity is a claim about
+#: a nearly static baseline near an intrinsic predictability limit, while the
+#: same number on track is a claim about a rapidly improving one. They are not
+#: equivalent achievements and the intensity limits deserve their own derivation.
 DEFAULT_THRESHOLDS: tuple[Threshold, ...] = (
     Threshold("track_error_48h_nm", 90.0),
     Threshold("track_error_72h_nm", 150.0),

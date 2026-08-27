@@ -16,9 +16,13 @@ import numpy as np
 def crps_ensemble(members: np.ndarray, observation: float) -> float:
     """Continuous Ranked Probability Score for one ensemble forecast.
 
-    Uses the fair estimator based on absolute differences:
-    ``CRPS = mean|x_i - y| - 0.5 * mean|x_i - x_j|``.
-    Lower is better; for a single member it reduces to absolute error.
+    Uses the kernel form ``CRPS = E|X - y| - 0.5 * E|X - X'|`` given by Gneiting
+    and Raftery (2007, doi:10.1198/016214506000001437); the score itself is due
+    to Matheson and Winkler (1976, doi:10.1287/mnsc.22.10.1087).
+
+    CRPS is strictly proper, so it is minimised only by reporting the true
+    predictive distribution -- it cannot be gamed by hedging the spread. Lower is
+    better, and for a single member it reduces to absolute error.
     """
     x = np.asarray(members, dtype=float).ravel()
     if x.size == 0:
@@ -80,6 +84,11 @@ def spread_skill(members: np.ndarray, observations: np.ndarray) -> SpreadSkill:
     Spread uses the ddof=1 standard deviation across members, averaged in
     variance space; comparing it to the ensemble-mean RMSE is the standard
     calibration diagnostic.
+
+    This requires an observation, so it is a **post-hoc verification tool only**.
+    It cannot gate a product at forecast time -- see
+    :func:`aeolus.inference.postprocess.build_cone` for the real-time proxy used
+    there instead.
     """
     members = np.asarray(members, dtype=float)
     observations = np.asarray(observations, dtype=float)
@@ -95,7 +104,15 @@ def spread_skill(members: np.ndarray, observations: np.ndarray) -> SpreadSkill:
 def rank_histogram(members: np.ndarray, observations: np.ndarray) -> np.ndarray:
     """Rank (Talagrand) histogram counts, length ``n_members + 1``.
 
-    A flat histogram indicates calibration; a U shape indicates underdispersion.
+    A flat histogram is consistent with calibration; a U shape is consistent with
+    underdispersion.
+
+    Read it with Hamill (2001, doi:10.1175/1520-0493(2001)129<0550:IORHFV>2.0.CO;2)
+    in hand: a U shape does **not** uniquely indicate underdispersion. Observation
+    error and conditional biases produce the same signature. Since underdispersion
+    is the failure mode MERIDIAN is most likely to exhibit, the temptation to read
+    every U as confirmation is exactly the error to avoid -- pair it with the
+    spread-skill ratio and with per-regime stratification before concluding.
     """
     members = np.asarray(members, dtype=float)
     observations = np.asarray(observations, dtype=float)

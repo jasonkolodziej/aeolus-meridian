@@ -20,8 +20,19 @@ import numpy as np
 from ..geo import haversine_nm
 from ..metrics.probabilistic import ensemble_percentiles
 
-#: NHC-style 2/3-probability circle radii (nm) by lead time. Placeholder values
-#: in the shape of the real table; replace with the current-season radii.
+#: NHC-style 2/3-probability circle radii (nm) by lead time.
+#:
+#: NHC sizes each circle so that two-thirds of official forecast errors over the
+#: previous five years fall within it, and re-derives the table annually
+#: (https://www.nhc.noaa.gov/aboutcone.shtml). The values below are placeholders
+#: close to the published 2023 Atlantic radii; replace with the current season's
+#: table rather than assuming these stay reasonable.
+#:
+#: Note for the 2026 season NHC is trialling a cone built from **ellipses** rather
+#: than circles, separating the along-track (speed) and cross-track (directional)
+#: error components. That is the decomposition metrics.track.cross_along_track_nm
+#: already computes, so an elliptical ConeSegment -- semi-major, semi-minor and
+#: orientation in place of a single radius -- is a natural extension here.
 CLIMATOLOGICAL_CONE_NM: dict[int, float] = {
     12: 26.0,
     24: 41.0,
@@ -32,7 +43,14 @@ CLIMATOLOGICAL_CONE_NM: dict[int, float] = {
     120: 198.0,
 }
 
-#: Rapid intensification: >=30 kt increase in 24 h (the standard definition).
+#: Rapid intensification: >=30 kt increase in 24 h.
+#:
+#: Kaplan and DeMaria (2003, doi:10.1175/1520-0434(2003)018<1093:LCORIT>2.0.CO;2)
+#: define RI as roughly the 95th percentile of over-water 24 h intensity changes
+#: for Atlantic storms developing 1989-2000, which works out to 30 kt. It is a
+#: percentile of a continuous distribution, not a physical discontinuity -- later
+#: work finds no gap in the distribution near 30 kt. Treat both this and the
+#: alert probability in build_products() as tunable conventions, not physics.
 RI_THRESHOLD_KT = 30.0
 RI_WINDOW_HOURS = 24
 
