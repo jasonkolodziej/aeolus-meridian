@@ -2,11 +2,11 @@
   "folders": [
     {
       "path": ".",
-      "name": "aeolus-meridian"
+      "name": "aeolus-meridian",
     },
     {
-        "path": "../aeolus-meridian.wiki",
-        "name": "AEOLUS Wiki"
-    }
-  ]
+      "path": "../aeolus-meridian.wiki",
+      "name": "aeolus-meridian.wiki",
+    },
+  ],
 }
